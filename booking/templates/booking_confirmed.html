@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Booking Confirmed</title>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Success Card -->
+            <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-center text-white p-5">
+                    <!-- Success Icon -->
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle" style="font-size: 4rem; color: #4ade80;"></i>
+                    </div>
+                    
+                    <!-- Main Message -->
+                    <h1 class="card-title mb-2">
+                        <strong>Booking Confirmed!</strong>
+                    </h1>
+                    <p class="lead mb-4">Your tickets have been successfully booked</p>
+
+                    <!-- Booking Details Card -->
+                    <div class="card bg-white bg-opacity-10 border-0 mb-4">
+                        <div class="card-body">
+                            <!-- Movie Name -->
+                            <div class="row mb-3">
+                                <div class="col-sm-5 text-start">
+                                    <p class="mb-0" style="color: #cbd5e1;">Movie</p>
+                                </div>
+                                <div class="col-sm-7 text-end">
+                                    <h5 class="mb-0"><strong>{{ booking.movie_name }}</strong></h5>
+                                </div>
+                            </div>
+
+                            <hr style="border-color: rgba(255,255,255,0.2);">
+
+                            <!-- Theatre Name -->
+                            <div class="row mb-3">
+                                <div class="col-sm-5 text-start">
+                                    <p class="mb-0" style="color: #cbd5e1;">Theatre</p>
+                                </div>
+                                <div class="col-sm-7 text-end">
+                                    <h5 class="mb-0"><strong>{{ booking.theatre_name }}</strong></h5>
+                                </div>
+                            </div>
+
+                            <hr style="border-color: rgba(255,255,255,0.2);">
+
+                            <!-- Show Date -->
+                            <div class="row mb-3">
+                                <div class="col-sm-5 text-start">
+                                    <p class="mb-0" style="color: #cbd5e1;">Date</p>
+                                </div>
+                                <div class="col-sm-7 text-end">
+                                    <h5 class="mb-0"><strong>{{ booking.show_date|date:"M d, Y" }}</strong></h5>
+                                </div>
+                            </div>
+
+                            <hr style="border-color: rgba(255,255,255,0.2);">
+
+                            <!-- Show Time -->
+                            <div class="row mb-3">
+                                <div class="col-sm-5 text-start">
+                                    <p class="mb-0" style="color: #cbd5e1;">Show Time</p>
+                                </div>
+                                <div class="col-sm-7 text-end">
+                                    <h5 class="mb-0"><strong>{{ booking.show_time }}</strong></h5>
+                                </div>
+                            </div>
+
+                            <hr style="border-color: rgba(255,255,255,0.2);">
+
+                            <!-- Seats -->
+                            <div class="row mb-3">
+                                <div class="col-sm-5 text-start">
+                                    <p class="mb-0" style="color: #cbd5e1;">Seats</p>
+                                </div>
+                                <div class="col-sm-7 text-end">
+                                    <h5 class="mb-0"><strong>{{ booking.seats }}</strong></h5>
+                                </div>
+                            </div>
+
+                            <hr style="border-color: rgba(255,255,255,0.2);">
+
+                            <!-- Total Amount -->
+                            <div class="row">
+                                <div class="col-sm-5 text-start">
+                                    <p class="mb-0" style="color: #cbd5e1; font-size: 1.1rem;">Total Amount</p>
+                                </div>
+                                <div class="col-sm-7 text-end">
+                                    <h5 class="mb-0" style="color: #4ade80; font-size: 1.5rem;">
+                                        <strong>₹{{ booking.price }}</strong>
+                                    </h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Booking ID -->
+                    <div class="alert alert-info bg-white bg-opacity-15 border-0 text-white" role="alert">
+                        <h4 style="color: #4ade80; margin-bottom: 0.5rem;">Ticket Number</h4>
+                        <strong style="font-size: 1.8rem; color: #4ade80;">#TKT{{ booking.ticket_number }}</strong>
+                        <p style="font-size: 0.9rem; color: #cbd5e1; margin-top: 0.5rem; margin-bottom: 0;">Keep this number safe for your reference</p>
+                    </div>
+
+                    <!-- Confirmation Message -->
+                    <p style="color: #cbd5e1; font-size: 0.95rem; margin-top: 2rem;">
+                        A confirmation email has been sent to <strong>{{ request.user.email }}</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row mt-5 g-3">
+                <div class="col-md-6">
+                    <a href="{% url 'my-bookings' %}" class="btn btn-primary btn-lg w-100" style="background-color: #667eea; border-color: #667eea;">
+                        <i class="bi bi-ticket-detailed"></i> View All Bookings
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'mainpage' %}" class="btn btn-outline-primary btn-lg w-100" style="border-color: #667eea; color: #667eea;">
+                        <i class="bi bi-house"></i> Book More Tickets
+                    </a>
+                </div>
+            </div>
+
+            <!-- Additional Info -->
+            <div class="alert alert-light mt-5" role="alert">
+                <h5 class="alert-heading">
+                    <i class="bi bi-info-circle"></i> Important Information
+                </h5>
+                <ul class="mb-0">
+                    <li>Please arrive at the theatre at least 15 minutes before the show time</li>
+                    <li>Present this booking ID at the counter to collect your tickets</li>
+                    <li>Cancellations can be made up to 2 hours before the show</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bi-check-circle {
+        filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.5));
+    }
+
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 2rem 1rem !important;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+        }
+
+        .row > div {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+{% endblock %}

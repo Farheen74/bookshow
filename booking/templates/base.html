@@ -56,6 +56,45 @@
              .norounds{
                 border-radius: 0px;
              }
+             
+             /* CineBook Branding Styles */
+             .cinebook-brand {
+                 display: flex;
+                 align-items: center;
+                 gap: 12px;
+                 font-size: 28px;
+                 font-weight: 800;
+                 letter-spacing: -1px;
+                 background: linear-gradient(135deg, #ffd60a 0%, #ffb703 100%);
+                 -webkit-background-clip: text;
+                 -webkit-text-fill-color: transparent;
+                 background-clip: text;
+                 text-transform: uppercase;
+                 transition: all 0.3s ease;
+             }
+             
+             .cinebook-brand:hover {
+                 transform: scale(1.05);
+                 filter: drop-shadow(0 0 8px rgba(255, 214, 10, 0.4));
+             }
+             
+             .cinebook-icon {
+                 width: 36px;
+                 height: 36px;
+                 background: linear-gradient(135deg, #ffd60a 0%, #ffb703 100%);
+                 border-radius: 8px;
+                 display: flex;
+                 align-items: center;
+                 justify-content: center;
+                 font-size: 20px;
+                 font-weight: bold;
+                 color: #000814;
+                 box-shadow: 0 4px 12px rgba(255, 214, 10, 0.3);
+             }
+             
+             .navbar-brand {
+                 text-decoration: none !important;
+             }
         </style>
         {% block title %}
         <title> Page title and additional CSS goes here</title>
@@ -65,7 +104,10 @@
         <!-- Navigation-->
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark bgdark">
             <div class="container px-4 px-lg-5 bg-dark bgdark navbarstyle">
-                <a class="navbar-brand navbarstyle" href="/">BookMyTiket</a>
+                <a class="navbar-brand navbarstyle cinebook-brand" href="/">
+                    <div class="cinebook-icon">🎬</div>
+                    CineBook
+                </a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
@@ -98,12 +140,7 @@
      
         
     </main>
-        <!-- Footer-->
-        <footer class="py-2 bg-dark bgdark footerstyle" >
-            <div class="container" ><p class="m-0 text-center ">Copyright &copy;BookMyTiket 2022</p></div>
-            <div class="container"><p class="m-0 text-center ">Terms of Use and</p></div>
-            <div class="container"><p class="m-0 text-center ">Privacy Policy </p></div>
-        </footer>
+      
         
         <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
         {% comment %} <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script> {% endcomment %}

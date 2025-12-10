@@ -91,3 +91,17 @@ def get_value(dictionary):
 @register.filter(name="tup")
 def get_tuple(tuple,index):
     return tuple[int(index)]
+
+
+@register.filter(name="to")
+def to(value, end):
+    """Return a range from int(value) to int(end) inclusive.
+
+    Usage in templates: {% for i in 1|to:30 %}
+    """
+    try:
+        start = int(value)
+        stop = int(end)
+    except (TypeError, ValueError):
+        return []
+    return range(start, stop+1)

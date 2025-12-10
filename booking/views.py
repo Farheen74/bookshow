@@ -12,6 +12,7 @@ from .models import *
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.urls import reverse
 
 
 def home(request):
@@ -27,25 +28,77 @@ def movie_detail(request,id):
 
 @user_passes_test(user_login_required, login_url='/accounts/usersignin')
 def show_select(request):
-    if(request.method == "GET" and len(request.GET)!=0):
-        
+    # Initialize default values
+    date = request.GET.get('date', '')
+    res_dict = {}
+    shows = []
+    
+    if request.method == "GET" and 'date' in request.GET:
         date = request.GET['date']
-        films = ""
-        # add showitme >= current time + 5 min
-        shows = show.objects.filter(end_date__gte=date, start_date__lte=date).select_related('movie_id','movie__url','movie__movie_name').order_by('movie_id','showtime').values_list('id','price','showtime','movie','movie__url','movie__movie_name',named=True)
-        res_dict = {}
         
-        # Grouping shows rows by movie and appending showitmes in a list
+        # Fetch shows for the selected date
+        shows = show.objects.filter(
+            end_date__gte=date, 
+            start_date__lte=date
+        ).select_related(
+            'movie_id',
+            'movie__url',
+            'movie__movie_name'
+        ).order_by('movie_id', 'showtime').values_list(
+            'id','price','showtime','movie','movie__url','movie__movie_name',
+            named=True
+        )
+        
+        # Grouping shows by movie
         for s in shows:
-            # legend of fields: showid 0, price 1, showtime 2, movieid 3, movieurl 4, moviename 5,
-            if(s[5] not in res_dict.keys()): 
-                #movie doesn't exit in dict
-                res_dict[s[5]]={'url':s[4],'price':s[1], 'showtimes':{s[0]:s[2]}, 'movieid':s[3]}
-            else: 
-                #movie already exists
-                res_dict[s[5]]['showtimes'][s[0]]=s[2]            
-        
-    return render(request,"show_selection.html",context = {'films':res_dict,'date':date,'shows':shows})
+            # legend of fields: showid 0, price 1, showtime 2, movieid 3, movieurl 4, moviename 5
+            if s[5] not in res_dict.keys():
+                # Movie doesn't exist in dict yet
+                res_dict[s[5]] = {
+                    'url': s[4],
+                    'price': s[1],
+                    'showtimes': {s[0]: s[2]},
+                    'movieid': s[3]
+                }
+            else:
+                # Movie already exists, add showtime
+                res_dict[s[5]]['showtimes'][s[0]] = s[2]
+    
+    return render(request, "show_selection.html", context={
+        'films': res_dict,
+        'date': date,
+        'shows': shows
+    })
+
+
+@user_passes_test(user_login_required, login_url='/accounts/usersignin')
+def seat_select(request):
+    """
+    Render seat selection page for a specific show
+    GET params: show_id, show_date
+    """
+    context = {}
+    show_id = request.GET.get('show_id')
+    show_date = request.GET.get('show_date')
+    context['show_id'] = show_id
+    context['show_date'] = show_date
+    # if show id provided, include movie name and showtime for the template
+    try:
+        if show_id:
+            s = show.objects.get(id=show_id)
+            context['movie_name'] = s.movie.movie_name
+            context['show_time'] = s.showtime.strftime('%I:%M %p') if s.showtime else ''
+            # theatre name default
+            context['theatre_name'] = 'Main Theatre'
+        else:
+            context['movie_name'] = ''
+            context['show_time'] = ''
+            context['theatre_name'] = 'Main Theatre'
+    except Exception:
+        context['movie_name'] = ''
+        context['show_time'] = ''
+        context['theatre_name'] = 'Main Theatre'
+    return render(request, 'seatselect.html', context)
 
 
 def bookedseats(request):
@@ -84,25 +137,92 @@ def sendEmail(request,message):
     return True
 
 
+@user_passes_test(user_login_required, login_url='/accounts/usersignin')
 def checkout(request):
     context = {}
     if (request.method == "POST"):
-        show_date = request.POST['showdate']
-        seats = request.POST['seats']
-        show_id = request.POST['showid']
-        # Get Show id
-        showinfo = show.objects.get(id=show_id)
-        num_seats = len(seats.split(","))
-        showinfo = show.objects.get(id=show_id)
-        total = showinfo.price*num_seats
-        booking.objects.create(booking_code="Random",user=request.user,show=showinfo,show_date=show_date,booked_date=datetime.now(timezone.utc),  seat_num=seats, num_seats=num_seats,total = total)        
-        context["film"] = film.objects.get(movie_name = showinfo.movie) 
-        context['sdate'] = show_date
-        context['seats'] = seats
-        context['show'] = showinfo
-        message="\nYour tickets are successsfully booked. Here are the details. \nThe movie is {}. \nThe show is on {}. \nThe show starts at {}. \nYour seat numbers are {}. \n\nThank you,\nBookMyTicket".format(context["film"], show_date,showinfo.showtime,seats)
-        sendEmail(request,message)
-    return render(request,"checkout.html",context)
+        show_date_str = request.POST.get('showdate')
+        seats = request.POST.get('seats')
+        show_id = request.POST.get('showid')
+        movie_name = request.POST.get('movie_name') or ''
+        theatre_name = request.POST.get('theatre_name') or 'Main Theatre'
+        show_time = request.POST.get('show_time') or ''
+
+        # Convert show_date string to date object
+        show_date = None
+        try:
+            from datetime import datetime as dt
+            show_date = dt.strptime(show_date_str, '%Y-%m-%d').date() if show_date_str else None
+        except Exception as e:
+            print(f"Error parsing show_date: {e}")
+            show_date = None
+
+        # Get show info where possible
+        showinfo = None
+        try:
+            if show_id:
+                showinfo = show.objects.get(id=show_id)
+                if not movie_name:
+                    movie_name = showinfo.movie.movie_name
+                if not show_time and showinfo.showtime:
+                    show_time = showinfo.showtime.strftime('%I:%M %p')
+        except Exception as e:
+            print(f"Error getting show info: {e}")
+            showinfo = None
+
+        num_seats = 0
+        if seats:
+            num_seats = len([s for s in seats.split(',') if s])
+
+        total = 199 * num_seats
+
+        # Create new UserBooking record for ticket UI (primary booking system)
+        user_booking = None
+        try:
+            if show_date and seats:  # Ensure we have required fields
+                user_booking = UserBooking.objects.create(
+                    user=request.user,
+                    movie_name=movie_name,
+                    theatre_name=theatre_name,
+                    seats=seats,
+                    show_date=show_date,
+                    show_time=show_time,
+                    price=total,
+                )
+                print(f"UserBooking created: {user_booking.id}")
+        except Exception as e:
+            print(f"Error creating UserBooking: {e}")
+            import traceback
+            traceback.print_exc()
+            user_booking = None
+
+        # Create old booking model (keeps seat-occupancy behavior)
+        try:
+            if showinfo is not None and show_date and seats:
+                booking.objects.create(
+                    user=request.user,
+                    show=showinfo,
+                    show_date=show_date,
+                    booked_date=datetime.now(timezone.utc),
+                    seat_num=seats,
+                    num_seats=num_seats,
+                    total=total,
+                )
+                print(f"Booking created for show: {showinfo.id}")
+        except Exception as e:
+            print(f"Error creating booking: {e}")
+            import traceback
+            traceback.print_exc()
+
+        # If we created a UserBooking, redirect to its confirmation page.
+        # Otherwise fall back to the 'my-bookings' page which will show the
+        # older `booking`-table entries (if any were created successfully).
+        if user_booking:
+            return HttpResponseRedirect(reverse('booking-confirmed', args=[user_booking.id]))
+        else:
+            return HttpResponseRedirect(reverse('my-bookings'))
+    # If not POST, redirect back to show selection
+    return HttpResponseRedirect('/')
 
 @user_passes_test(user_login_required, login_url='/accounts/usersignin')
 def userbookings(request):
@@ -117,6 +237,20 @@ def userbookings(request):
         'msg':msg
     }
     return render(request,"bookings.html",context)
+
+
+def booking_confirmed(request, id):
+    try:
+        b = UserBooking.objects.get(id=id, user=request.user)
+    except Exception:
+        return HttpResponseRedirect('/my-bookings/')
+    return render(request, 'booking_confirmed.html', {'booking': b})
+
+
+@user_passes_test(user_login_required, login_url='/accounts/usersignin')
+def my_bookings(request):
+    bookings = UserBooking.objects.filter(user=request.user).order_by('-booked_on')
+    return render(request, 'my_bookings.html', {'bookings': bookings, 'today': date.today()})
 
 @user_passes_test(user_login_required, login_url='/accounts/usersignin')
 def cancelbooking(request,id):

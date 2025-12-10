@@ -24,7 +24,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-e_h%5f=0rgjm3(9ps49lt*t+actcc=wuzvi_69$ry(!^v6vlr#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+# Default to True for local development; override with env var in production
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
 
@@ -98,24 +99,43 @@ WSGI_APPLICATION = 'movieticket.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-   'default': {
-       'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ['DBNAME'],
-        'HOST': os.environ['DBHOST'],
-        'USER': os.environ['DBUSER'],
-        'PASSWORD': os.environ['DBPASS'] ,
-        'PORT': '5433',
-   }
-}
+try:
+    DATABASES = {
+       'default': {
+           'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ['DBNAME'],
+            'HOST': os.environ['DBHOST'],
+            'USER': os.environ['DBUSER'],
+            'PASSWORD': os.environ['DBPASS'],
+            'PORT': os.environ.get('DBPORT', '5433'),
+       }
+    }
+except KeyError:
+    # Fall back to SQLite for local development when PostgreSQL env vars are not set
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ['EMHOST']
-EMAIL_HOST_USER = os.environ['EMUSER']
-EMAIL_HOST_PASSWORD = os.environ['EMPASS']
-EMAIL_PORT = '2525'
-EMAIL_USE_TLS = True
+# Email configuration - fall back to console backend when env vars are missing
+if os.environ.get('EMHOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMHOST')
+    EMAIL_HOST_USER = os.environ.get('EMUSER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMPASS', '')
+    EMAIL_PORT = int(os.environ.get('EMPPORT', '2525'))
+    EMAIL_USE_TLS = os.environ.get('EMTLS', 'True').lower() in ('true', '1', 'yes')
+else:
+    # For local development without email env vars, print emails to console
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST = ''
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    EMAIL_PORT = ''
+    EMAIL_USE_TLS = False
 
 
 # Password validation

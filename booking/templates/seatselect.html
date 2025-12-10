@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seat Selection — BookMyShow style</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#94a3b8;
+      --accent:#ef4444;
+      --seat:#1f2937;
+      --seat-available:#2b3440;
+      --seat-selected:#60a5fa;
+      --glass: rgba(255,255,255,0.04);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      background: linear-gradient(180deg, #071029 0%, #081226 100%);
+      color:#e6eef8;padding:28px;display:flex;align-items:flex-start;justify-content:center;
+    }
+    .wrap{width:100%;max-width:960px}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;padding:20px;box-shadow:0 6px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);
+    }
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    header h1{font-size:18px;margin:0}
+    header p{color:var(--muted);margin:0;font-size:13px}
+    .screen{
+      background: linear-gradient(90deg,#e2e8f0 0%, #cbd5e1 100%);
+      height:36px;border-radius:6px;margin:18px auto 26px;box-shadow:0 4px 18px rgba(2,6,23,0.6) inset; width:70%;
+      display:flex;align-items:center;justify-content:center;color:#0b1220;font-weight:600;letter-spacing:1px
+    }
+    .legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .legend .item{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+    .dot{width:18px;height:12px;border-radius:3px}
+    .dot.available{background:var(--seat-available);border:1px solid rgba(255,255,255,0.03)}
+    .dot.selected{background:var(--seat-selected)}
+    .seating{display:flex;flex-direction:column;align-items:center;gap:12px;padding:10px 6px}
+    .row{display:flex;gap:8px;align-items:center}
+    .row .row-label{width:26px;text-align:right;color:var(--muted);font-size:13px;margin-right:6px}
+    .seat{
+      width:34px;height:34px;border-radius:6px;background:var(--seat-available);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+      border:1px solid rgba(255,255,255,0.03);user-select:none;font-size:12px;color:#dbeafe
+    }
+    .seat:hover{transform:translateY(-3px);transition:transform .12s}
+    .seat.selected{background:var(--seat-selected);color:#04264a}
+    .aisle{width:20px}
+    .screen-label{font-size:13px;color:var(--muted);text-align:center;margin-bottom:6px}
+    .summary{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;margin-top:14px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02)}
+    .summary .left{font-size:14px}
+    .summary .right{display:flex;gap:8px;align-items:center}
+    .btn{background:var(--accent);border:none;color:white;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    @media (max-width:520px){
+      .seat{width:28px;height:28px;font-size:11px}
+      .dot{width:14px;height:10px}
+      .card{padding:12px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div>
+          <h1>Choose Seats</h1>
+          <p>Select your seats and proceed to payment</p>
+        </div>
+        <div style="text-align:right">
+          <div style="color:var(--muted);font-size:13px">Price per seat</div>
+          <div style="font-weight:700">₹ <span id="seatPrice">199</span></div>
+        </div>
+      </header>
+
+      <div class="screen" aria-hidden>SCREEN</div>
+
+      <div class="seating" id="seatingArea">
+        <div class="legend">
+          <div class="item"><span class="dot available"></span> <span>Available</span></div>
+          <div class="item"><span class="dot selected"></span> <span>Selected</span></div>
+        </div>
+        <div class="screen-label">Front of the screen</div>
+      </div>
+
+      <div class="summary">
+        <div class="left">
+          <div>Selected seats: <strong id="count">0</strong></div>
+          <div style="color:var(--muted);font-size:13px;margin-top:4px">Seats: <span id="selectedList">—</span></div>
+        </div>
+        <div class="right">
+          <div style="text-align:right;margin-right:8px">
+            <div style="color:var(--muted);font-size:13px">Total</div>
+            <div style="font-weight:700">₹ <span id="total">0</span></div>
+          </div>
+          <button class="btn" id="bookBtn">Book Now</button>
+          <button class="btn secondary" id="resetBtn">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const show_id = urlParams.get('show_id');
+    const show_date = urlParams.get('show_date');
+    const show_time = urlParams.get('show_time');
+    const movie_name = urlParams.get('movie_name');
+
+    const config = {
+      rows: ['A','B','C','D','E','F','G'],
+      seatsPerRow: 12,
+      aisleAfter: [3,9],
+      price: 199
+    };
+
+    const seatingArea = document.getElementById('seatingArea');
+    const countEl = document.getElementById('count');
+    const totalEl = document.getElementById('total');
+    const selectedListEl = document.getElementById('selectedList');
+    const seatPriceEl = document.getElementById('seatPrice');
+    seatPriceEl.textContent = config.price;
+
+    function renderSeating(){
+      const frag = document.createDocumentFragment();
+      config.rows.forEach(rowLabel => {
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        const label = document.createElement('div');
+        label.className = 'row-label';
+        label.textContent = rowLabel;
+        row.appendChild(label);
+
+        for(let i=1;i<=config.seatsPerRow;i++){
+          if(config.aisleAfter.includes(i-1)){
+            const aisle = document.createElement('div');
+            aisle.className = 'aisle';
+            row.appendChild(aisle);
+          }
+          const seat = document.createElement('div');
+          seat.className = 'seat';
+          seat.textContent = i;
+          seat.dataset.seat = rowLabel + i;
+          seat.addEventListener('click', () => {
+            seat.classList.toggle('selected');
+            updateSummary();
+          });
+          row.appendChild(seat);
+        }
+        frag.appendChild(row);
+      });
+
+      while(seatingArea.children.length>2) seatingArea.removeChild(seatingArea.lastChild);
+      seatingArea.appendChild(frag);
+    }
+
+    function updateSummary(){
+      const selected = Array.from(document.querySelectorAll('.seat.selected'));
+      const seats = selected.map(s=>s.dataset.seat);
+      countEl.textContent = seats.length;
+      totalEl.textContent = seats.length * config.price;
+      selectedListEl.textContent = seats.length ? seats.join(', ') : '—';
+    }
+
+    document.getElementById('resetBtn').addEventListener('click', ()=>{
+      document.querySelectorAll('.seat.selected').forEach(s=>s.classList.remove('selected'));
+      updateSummary();
+    });
+
+    document.getElementById('bookBtn').addEventListener('click', ()=>{
+      const selectedEls = document.querySelectorAll('.seat.selected');
+      if(selectedEls.length===0){
+        alert('Please select at least one seat.');
+        return;
+      }
+      // gather selected seats and submit hidden form to /checkout
+      const seats = Array.from(selectedEls).map(s=>s.dataset.seat);
+      const seatsStr = seats.join(',');
+      
+      // Populate all hidden form fields
+      const seatsInput = document.getElementById('input_seats');
+      if(seatsInput) seatsInput.value = seatsStr;
+      
+      const showdateInput = document.getElementById('form_showdate');
+      if(showdateInput) showdateInput.value = show_date || '';
+      
+      const showidInput = document.getElementById('form_showid');
+      if(showidInput) showidInput.value = show_id || '';
+      
+      const movienameInput = document.getElementById('form_movie_name');
+      if(movienameInput) movienameInput.value = movie_name || '';
+      
+      const showtimeInput = document.getElementById('form_show_time');
+      if(showtimeInput) showtimeInput.value = show_time || '';
+      
+      // Submit the form
+      const bookingForm = document.getElementById('booking_form');
+      if(bookingForm){
+        console.log('Submitting form with data:', {
+          seats: seatsStr,
+          showdate: show_date,
+          showid: show_id,
+          movie_name: movie_name,
+          show_time: show_time
+        });
+        bookingForm.submit();
+      } else {
+        alert('Booking form not found. Please try again.');
+      }
+    });
+
+    renderSeating();
+    updateSummary();
+  </script>
+
+  <!-- Hidden form for booking submission -->
+  <form id="booking_form" method="POST" action="/checkout" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" id="input_seats" name="seats" value="">
+    <input type="hidden" id="form_showdate" name="showdate" value="">
+    <input type="hidden" id="form_showid" name="showid" value="">
+    <input type="hidden" id="form_movie_name" name="movie_name" value="">
+    <input type="hidden" name="theatre_name" value="Main Theatre">
+    <input type="hidden" id="form_show_time" name="show_time" value="">
+  </form>
+</body>
+</html>
